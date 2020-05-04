@@ -18,34 +18,10 @@ This project use Linkit7697 and MCS cloud sandbox service to build a smart IOT A
 with relay and DS18B20 temperature sensor, you can monitor the value of your aquarium anytime anywhere!
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # 硬體設備/Hardware
 1X Linkit 7697
 1X 110v轉5V變壓器
+
 # 軟體/Software
 # 成果/Result
 
