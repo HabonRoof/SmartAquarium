@@ -1,4 +1,4 @@
-### [- 硬體設備/Hardware](##硬體設備/Hardware) 
+### [- 硬體設備/Hardware](#硬體設備/Hardware) 
 
 
 # IOT SmartAquarium
@@ -17,8 +17,8 @@ Now, you have an IOT smart aquarium system, the troubles above will not happen a
 This project use Linkit7697 and MCS cloud sandbox service to build a smart IOT Aquarium system,
 with relay and DS18B20 temperature sensor, you can monitor the value of your aquarium anytime anywhere!
 
-## 硬體設備/Hardware
-## 軟體/Software
-## 成果/Result
+# 硬體設備/Hardware
+# 軟體/Software
+# 成果/Result
 
 
