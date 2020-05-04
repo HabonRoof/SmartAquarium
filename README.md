@@ -1,4 +1,4 @@
-### [- 硬體設備/Hardware](#硬體設備ardware) 
+### [- 硬體設備/Hardware](#硬體設備hardware) 
 
 
 # IOT SmartAquarium
