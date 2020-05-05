@@ -36,7 +36,7 @@ MCSControllerOnOff  Filter("Relay_4");
 MCSControllerOnOff  AutoMode("Auto_Mode");
 MCSControllerInteger setHour("StartTime_hour");
 MCSControllerInteger setMin("StartTime_min");
-MCSControllerInteger duration("Duration");
+MCSControllerInteger Duration("Duration");
 
 MCSDisplayOnOff     Light_state("RelayState_1");
 MCSDisplayOnOff     Co2_state("RelayState_2");
@@ -54,12 +54,27 @@ byte Relay_2 = 8;
 byte Relay_3 = 9;
 byte Relay_4 = 10;
 
+//Define time parameter-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//the light will be open if Nowtime in the range of duration
+//For example:
+//Start |Hour:Minute| -> |Duration(minute)| -> End |Hour:Minute|
+//          OFF                 ON                      OFF
+//Start |  08:00    | -> |    480min      | -> End |   16:00   |
+
+byte StartHour = 0;     byte StartMin = 0;
+byte EndHour = 0;       byte EndMin = 0;
+byte NowHour = 0;       byte NowMin = 0;
+int OpeningTime = 0;
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 void MCS_addchannel();
 void MCS_Init();
 void Pin_Setup();
 void getStateFromMCS();
 void check_MCS_connection();
+void get_SetTime();
+void Timer_Mode();
 
 //Add channels to MCS service, the name of channel id is above the code, not on the MCS website.
 void MCS_addchannel() {
@@ -74,7 +89,7 @@ void MCS_addchannel() {
   mcs.addChannel(AutoMode);
   mcs.addChannel(setHour);
   mcs.addChannel(setMin);
-  mcs.addChannel(duration);
+  mcs.addChannel(Duration);
   mcs.addChannel(Power);
   mcs.addChannel(Temp);
 }
@@ -84,7 +99,7 @@ void MCS_addchannel() {
 void MCS_Init() {
   while (WL_CONNECTED != WiFi.status()) {       //Continuly conneting Wifi untill successful
     Serial.print("WiFi.begin(");
-    WiFi.begin(mySSID, myPSWD);                    //connect wifi
+    WiFi.begin(mySSID, myPSWD);                 //connect wifi
   }
   Serial.println("WiFi connected!");
   MCS_addchannel();                             //add channel to MCS
@@ -111,15 +126,15 @@ void getStateFromMCS() {
   }
   if (Co2.updated()) {
     digitalWrite(Relay_2, Co2.value() ? HIGH : LOW);
-    Co2_state.set(Light.value());
+    Co2_state.set(Co2.value());
   }
   if (AirPump.updated()) {
     digitalWrite(Relay_3, AirPump.value() ? HIGH : LOW);
-    AirPump_state.set(Light.value());
+    AirPump_state.set(AirPump.value());
   }
   if (Filter.updated()) {
     digitalWrite(Relay_4, Filter.value() ? HIGH : LOW);
-    Filter_state.set(Light.value());
+    Filter_state.set(Filter.value());
   }
 }
 
@@ -133,22 +148,52 @@ void check_MCS_connection() {
   }
 }
 
+void get_SetTime(){
+  //Get set time from MCS
+  StartHour = setHour.value();
+  StartMin = setMin.value();
+  OpeningTime = Duration.value();
+  EndHour = StartHour + (OpeningTime / 60);
+  EndMin = StartMin + (OpeningTime % 60);
+  //If tend time(hour) is greater than 24, that means the end time is at next day, so we need reset the hour to prevent error
+  if(EndHour >= 24)
+    EndHour = EndHour - 24;
+  //Same, if the end time(minute) is more than 60, means the end time need to carry to next hour.
+  if(EndMin >= 60){
+    EndMin = EndMin -60;
+    EndHour += EndHour;
+  }
+}
+
+void Timer_Mode(){
+  
+}
+
+
 void setup() {
   Pin_Setup();
   MCS_Init();
-  //If the data is invalid, reget data from MCS
-  while (!Light.valid() && !Co2.valid() && !AirPump.valid() && !Filter.valid()) {
+  //If the data is invalid, reget data from MCS-------------------------------------------------------------------------------------------------------------------------------------------
+  while (!Light.valid() && !Co2.valid() && !AirPump.valid() && !Filter.valid() && !AutoMode.valid()) {
     Light.value();
     Co2.value();
     AirPump.value();
     Filter.value();
+    AutoMode.value();
   }
+  //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   getStateFromMCS();
 }
 
 void loop() {
   //call process() to allow background processing, add timeout to avoid high cpu usage
   mcs.process(100);
-  getStateFromMCS();
+  if (AutoMode.value()) {
+    get_SetTime();
+    Timer_Mode();
+  }
+  else {
+    getStateFromMCS();
+  }
   check_MCS_connection();
 }
