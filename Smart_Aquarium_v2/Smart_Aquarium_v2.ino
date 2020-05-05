@@ -90,9 +90,15 @@ byte Relay_4 = 10;
 byte StartHour = 0;     byte StartMin = 0;
 byte EndHour = 0;       byte EndMin = 0;
 byte NowHour = 0;       byte NowMin = 0;
-int OpeningTime = 0;
+byte NowSec = 0;        int OpeningTime = 0;
 
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+//Some convenient flags
+bool printflag1 = false;
+bool printflag2 = false;
+bool printflag3 = false;
+
 
 void MCS_addchannel();
 void MCS_Init();
@@ -126,17 +132,12 @@ void MCS_addchannel() {
 
 //Initialize MCS service and WiFi service
 void MCS_Init() {
-  while (WL_CONNECTED != WiFi.status()) {       //Continuly conneting Wifi untill successful
-    Serial.print("WiFi.begin(");
-    WiFi.begin(mySSID, myPSWD);                 //connect wifi
-  }
+  while (WL_CONNECTED != WiFi.status())         //Continuly conneting Wifi untill successful
+    WiFi.begin(mySSID, myPSWD);                 //Connect WiFi
   Serial.println("WiFi connected!");
   MCS_addchannel();                             //add channel to MCS
-  while (!mcs.connected()) {
-    Serial.println("MCS connecting...");
+  while (!mcs.connected())
     mcs.connect();                              //Connect to MCS
-  }
-  Serial.println("MCS connected");
 }
 
 void Pin_Setup() {
@@ -169,19 +170,15 @@ void getStateFromMCS() {
 
 void check_MCS_connection() {
   while (!mcs.connected())
-  {
-    Serial.println("re-connect to MCS...");
     mcs.connect();
-    if (mcs.connected())
-      Serial.println("MCS connected !!");
-  }
 }
+
 
 void get_SetTime() {
   //Get set time from MCS
-  StartHour = setHour.value();
-  StartMin = setMin.value();
-  OpeningTime = Duration.value();
+  StartHour = setHour.value(); 
+  StartMin = setMin.value(); 
+  OpeningTime = Duration.value(); 
   EndHour = StartHour + (OpeningTime / 60);
   EndMin = StartMin + (OpeningTime % 60);
   //If tend time(hour) is greater than 24, that means the end time is at next day, so we need reset the hour to prevent error
@@ -192,102 +189,101 @@ void get_SetTime() {
     EndMin = EndMin - 60;
     EndHour += EndHour;
   }
+  //if(!printflag3){
+  //Serial.print("Set time ");
+  //Serial.print(StartHour);
+  //Serial.print(":");
+  //Serial.println(StartMin);
+  //Serial.print("Duration ");
+  //Serial.print(OpeningTime);
+  //Serial.println("Minutes");
+  //Serial.print("End Time ");
+  //Serial.print(EndHour);
+  //Serial.print(":");
+  //Serial.println(EndMin);
+  //}
+  //printflag3 = true;
 }
 
 void Timer_Mode() {
-
+  
 }
 
 void RTC_Init() {
   LRTC.begin();
+  LRTC.set(2020, 5, 5, NowHour, NowMin, NowSec);  //Set the RTC time to 2020/05/05/20:26:30
   LRTC.get();
-  //Put NTP time here
-  //
-  //
-  LRTC.hour();
-  LRTC.minute();
-  LRTC.second();
+  Serial.print("Nowtime ");
+  Serial.print(LRTC.hour());
+  Serial.print(LRTC.minute());
+  Serial.print(LRTC.second());
 }
 
 
 
-void NTP_Init(){
+void NTP_Init() {
   Udp.begin(localPort);
-  sendNTPpacket(NTP_server);// send an NTP packet to a time server
-  // wait to see if a reply is available
-  delay(1000);
-  if (Udp.parsePacket()) {
-    Serial.println("packet received");
-    // We've received a packet, read the data from it
-    Udp.read(packetBuffer, NTP_PACKET_SIZE); // read the packet into the buffer
+  // First,send an NTP packet to a time server,
+  // and wait to see if a reply is available.
+  sendNTPpacket(NTP_server);
 
-    //the timestamp starts at byte 40 of the received packet and is four bytes,
-    // or two words, long. First, esxtract the two words:
+  delay(5000);
+  if (Udp.parsePacket()) {
+    // We've received a packet, read the data into the buffer
+
+    Udp.read(packetBuffer, NTP_PACKET_SIZE);
+
+    //Second,the timestamp starts at byte 40 of the received packet and is four bytes,
+    // or two words, long. we need to esxtract the two words:
 
     unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
     unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
-    // combine the four bytes (two words) into a long integer
-    // this is NTP time (seconds since Jan 1 1900):
+
+    // And combine the four bytes (two words) into a long integer
+
     unsigned long secsSince1900 = highWord << 16 | lowWord;
-    Serial.print("Seconds since Jan 1 1900 = ");
-    Serial.println(secsSince1900);
 
-    // now convert NTP time into everyday time:
-    Serial.print("Unix time = ");
-    // Unix time starts on Jan 1 1970. In seconds, that's 2208988800:
-    const unsigned long seventyYears = 2208988800UL;
-    // subtract seventy years:
-    unsigned long epoch = secsSince1900 - seventyYears;
-    // print Unix time:
-    Serial.println(epoch);
+    // this is NTP time (seconds since Jan 1 1900):
+    // But we need to convert NTP time into everyday time:
 
+    const unsigned long seventyYears = 2208988800UL;              //Unix time starts on Jan 1 1970. In seconds, that's 2208988800 second
 
-    // print the hour, minute and second:
-    Serial.print("The UTC time is ");       // UTC is the time at Greenwich Meridian (GMT)
-    Serial.print((epoch  % 86400L) / 3600 + TimeZone); // print the hour (86400 equals secs per day)
-    Serial.print(':');u
-    if (((epoch % 3600) / 60) < 10) {
-      // In the first 10 minutes of each hour, we'll want a leading '0'
-      Serial.print('0');
-    }
-    Serial.print((epoch  % 3600) / 60); // print the minute (3600 equals secs per minute)
-    Serial.print(':');
-    if ((epoch % 60) < 10) {
-      // In the first 10 seconds of each minute, we'll want a leading '0'
-      Serial.print('0');
-    }
-    Serial.println(epoch % 60); // print the second
+    unsigned long NowTime = secsSince1900 - seventyYears;         //get the current time from 1970/01/01 (second)
+
+    //Updete time parameter into NTP time
+    NowHour = (NowTime  % 86400L) / 3600 + TimeZone;              // Convert into hour (86400 equals secs per day)
+    NowMin = (NowTime  % 3600) / 60;
+    NowSec = (NowTime % 60);
   }
 }
 
 // send an NTP request to the time server at the given address----------------------------------------------------------------------------------------------------------------------------
 unsigned long sendNTPpacket(const char* host) {
-  //Serial.println("1");
+
   // set all bytes in the buffer to 0
   memset(packetBuffer, 0, NTP_PACKET_SIZE);
   // Initialize values needed to form NTP request
-  // (see URL above for details on the packets)
-  //Serial.println("2");
+  // (see NTP Wiki above for details on the packets)
+
   packetBuffer[0] = 0b11100011;   // LI, Version, Mode
-  packetBuffer[1] = 0;     // Stratum, or type of clock
-  packetBuffer[2] = 6;     // Polling Interval
-  packetBuffer[3] = 0xEC;  // Peer Clock Precision
+  packetBuffer[1] = 0;            // Stratum, or type of clock
+  packetBuffer[2] = 6;            // Polling Interval
+  packetBuffer[3] = 0xEC;         // Peer Clock Precision
   // 8 bytes of zero for Root Delay & Root Dispersion
   packetBuffer[12]  = 49;
   packetBuffer[13]  = 0x4E;
   packetBuffer[14]  = 49;
   packetBuffer[15]  = 52;
 
-  //Serial.println("3");
 
   // all NTP fields have been given values, now
   // you can send a packet requesting a timestamp:
   Udp.beginPacket(host, 123); //NTP requests are to port 123
-  //Serial.println("4");
+
   Udp.write(packetBuffer, NTP_PACKET_SIZE);
-  //Serial.println("5");
+
   Udp.endPacket();
-  //Serial.println("6");
+
   return 0;
 }
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -296,9 +292,10 @@ unsigned long sendNTPpacket(const char* host) {
 void setup() {
   Serial.begin(9600);
   Pin_Setup();
+  MCS_Init();   //MCS_Init() include the wifi initial process, be the first process in setup
+  NTP_Init();   //NTP_Init() update current time into RTC module, need to be 
   RTC_Init();
-  MCS_Init();
-  NTP_Init();
+  
   //If the data is invalid, reget data from MCS
   while (!Light.valid() && !Co2.valid() && !AirPump.valid() && !Filter.valid() && !AutoMode.valid()) {
     Light.value();
@@ -312,12 +309,22 @@ void setup() {
 
 void loop() {
   //call process() to allow background processing, add timeout to avoid high cpu usage
-  mcs.process(100);
+  mcs.process(500);
   if (AutoMode.value()) {
+    if(!printflag1)
+      Serial.println("Auto Mode");
+    printflag1 = true;
+    printflag2 = false;
+    
     get_SetTime();
     Timer_Mode();
   }
   else {
+    if(!printflag2)
+     Serial.println("Manual Mode");
+    printflag2 = true;
+    printflag1 = false;
+    
     getStateFromMCS();
   }
   check_MCS_connection();
