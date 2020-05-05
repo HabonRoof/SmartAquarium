@@ -63,6 +63,8 @@ unsigned int localPort = 2390;    //local port to listen for UDP packets, this p
 IPAddress timeServer(118, 163, 81, 61);       //Taiwan standard time NTP server IP address
 const char *NTP_server = "time.stdtime.gov.tw";
 
+const int TimeZone = 8;
+
 const int NTP_PACKET_SIZE = 48;   // NTP time stamp is in the first 48 bytes of the message
 byte packetBuffer[ NTP_PACKET_SIZE]; //buffer to hold incoming and outgoing packets
 
@@ -213,7 +215,7 @@ void NTP_Init(){
   Udp.begin(localPort);
   sendNTPpacket(NTP_server);// send an NTP packet to a time server
   // wait to see if a reply is available
-  delay(5000);
+  delay(1000);
   if (Udp.parsePacket()) {
     Serial.println("packet received");
     // We've received a packet, read the data from it
@@ -242,7 +244,7 @@ void NTP_Init(){
 
     // print the hour, minute and second:
     Serial.print("The UTC time is ");       // UTC is the time at Greenwich Meridian (GMT)
-    Serial.print((epoch  % 86400L) / 3600); // print the hour (86400 equals secs per day)
+    Serial.print((epoch  % 86400L) / 3600 + gxz  TimeZone); // print the hour (86400 equals secs per day)
     Serial.print(':');
     if (((epoch % 3600) / 60) < 10) {
       // In the first 10 minutes of each hour, we'll want a leading '0'
