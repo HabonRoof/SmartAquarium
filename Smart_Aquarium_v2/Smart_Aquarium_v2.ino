@@ -244,8 +244,8 @@ void NTP_Init(){
 
     // print the hour, minute and second:
     Serial.print("The UTC time is ");       // UTC is the time at Greenwich Meridian (GMT)
-    Serial.print((epoch  % 86400L) / 3600 + gxz  TimeZone); // print the hour (86400 equals secs per day)
-    Serial.print(':');
+    Serial.print((epoch  % 86400L) / 3600 + TimeZone); // print the hour (86400 equals secs per day)
+    Serial.print(':');u
     if (((epoch % 3600) / 60) < 10) {
       // In the first 10 minutes of each hour, we'll want a leading '0'
       Serial.print('0');
