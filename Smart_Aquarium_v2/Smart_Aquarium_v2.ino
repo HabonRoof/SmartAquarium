@@ -16,6 +16,13 @@
 //Include WiFi UDP library to use UDP service to get NTP time from internet
 #include <WiFiUDP.h>
 
+//Include Dallas DS18B20 library
+#include <OneWire.h>
+#include <DallasTemperature.h>
+
+//Assign temperature sensor data wire pin
+#define one_wire_bus 4
+
 //Assign AP ssid and password
 #define mySSID "johnson"
 #define myPSWD "j8701292929"
@@ -72,6 +79,11 @@ byte packetBuffer[ NTP_PACKET_SIZE]; //buffer to hold incoming and outgoing pack
 // Create a UDP object, a UDP instance to let us send and receive packets over UDP
 WiFiUDP Udp;
 
+// Setup onewire bus for DS18B20 ----------------------------------------------------------------------------------------------------------------------------------------------------------
+OneWire onewire(one_wire_bus);        //create onewire bus object named onewire
+DallasTemperature sensors(&onewire);  //pass onewire object into DallasTemperature object named sensors
+float Temperature = 0;
+
 //  Define relay pin out ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 byte Relay_1 = 7;         //Light relay
@@ -115,6 +127,7 @@ bool printflag1 = false;
 bool printflag2 = false;
 bool printflag3 = false;
 
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 void MCS_addchannel();
 void MCS_Init();
@@ -126,7 +139,6 @@ void Timer_Mode();
 void RTC_Init();
 void NTP_Init();
 void sendNTPpacket();
-
 
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //Add channels to MCS service, the name of channel id is above the code, not on the MCS website.
@@ -169,7 +181,7 @@ void Pin_Setup() {
   pinMode(Manualmode_LED,OUTPUT);
 }
 
-// Get relay state from MCS
+// Get relay state from MCS ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 void getStateFromMCS() {
   //Get the switch state from MCS
   //and update the state to MCS display
@@ -236,7 +248,7 @@ void Timer_Mode() {
   }
 }
 
-// Initialize the RTC and set to real time
+// Initialize the RTC and set to real time ----------------------------------------------------------------------------------------------------------------------------------------------
 void RTC_Init() {
   LRTC.begin();
   LRTC.set(2020, 5, 5, NowHour, NowMin, NowSec);  //Set the RTC time to 2020/05/05/ HH:MM:SS (NTP time) the date of RTC is not importand, so I ignore the process to update real date.
@@ -247,7 +259,7 @@ void RTC_Init() {
   //Serial.println(LRTC.second());
 }
 
-// Initialize NTP server to get correct time from internet
+// Initialize NTP server to get correct time from internet ------------------------------------------------------------------------------------------------------------------------------
 void NTP_Init() {
   Udp.begin(localPort);
   // First,send an NTP packet to a time server,
@@ -348,6 +360,14 @@ void get_AC_Current(){
   Power.set(Energe);                                                      //Send power consumption to MCS -> P = I*V (W), W = P * T (kW/H)
 }
 
+// Get aquarium temperature via DS18B20 --------------------------------------------------------------------------------------------------------------------------------------------------
+void get_Temperature(){
+  sensors.requestTemperatures();                //Request all temperature sensor's value
+  Temperature = sensors.getTempCByIndex(0);     //get the temperature in Celsius at sensor number "0" 
+  Temp.set(Temperature);                        //Update temperature to MCS
+  Serial.print("Temperature:");
+  Serial.println(Temperature);
+}
 
 
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -368,6 +388,7 @@ void setup() {
     Filter.value();
     AutoMode.value();
   }
+  sensors.begin();        //Start DallasTemperature sensors
   getStateFromMCS();
 }
 
@@ -399,5 +420,6 @@ void loop() {
     getStateFromMCS();
   }
   get_AC_Current();
+  get_Temperature();
   check_MCS_connection();
 }
