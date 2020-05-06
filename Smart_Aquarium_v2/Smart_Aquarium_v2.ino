@@ -79,8 +79,8 @@ byte Relay_2 = 8;         //Co2 relay
 byte Relay_3 = 9;         //AirPump relay
 byte Relay_4 = 10;        //Filter relay
 byte ACS712 = 14;         //ACS712 current sensor (30A)
-byte Automode_LED = 1;
-byte Manualmode_LED = 2;
+byte Automode_LED = 2;    //The reason 
+byte Manualmode_LED = 3;
 
 
 //  Define time parameter -----------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -322,7 +322,11 @@ void get_AC_Current(){
     if (analogVal < minValue)                         //update min value
       minValue = analogVal;
   }
-  
+  //Serial.print("Max val =");
+  //Serial.print(maxValue);
+  //Serial.print("/t");
+  //Serial.print("Min val =");
+  //Serial.println(minValue);
   float Vpp = (maxValue - minValue) * 5000 / 4096;    //Means peak-to-peak voltage is the max value - min value, and convert to the real voltage of ACS712 module, not ADC number.
                                                       //So the Vcc should be 5000mV instead of 2500mV.
   
@@ -335,7 +339,10 @@ void get_AC_Current(){
    */
    
   Current = (Vpp / 2.0 * 0.707 / sensitivity) - Current_offset;           //Convert Vpp into Vrms, this value is the sensor's Vrms, and also represent current
-
+  if(Current < 0)                                                         //Current is positive
+    Current = 0;
+  //Serial.print("Current =");
+  //Serial.println(Current);
   mcs_Current.set(Current);                                               //send current to MCS
   Energe += (Volt * Current / 3600) / 1000;                               //Calculate power consumption and accumulate the energe. 
   Power.set(Energe);                                                      //Send power consumption to MCS -> P = I*V (W), W = P * T (kW/H)
@@ -348,7 +355,6 @@ void get_AC_Current(){
 
 void setup() {
   Serial.begin(115200);
-  Serial.print("Hello");
   Pin_Setup();
   MCS_Init();   //MCS_Init() include the wifi initial process, be the first process in setup
   NTP_Init();   //NTP_Init() update current time into RTC module, need to be 
