@@ -20,6 +20,9 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
+//Include I2C LCD library
+#include <LiquidCrystal_I2C.h>
+
 //Assign temperature sensor data wire pin
 #define one_wire_bus 4
 
@@ -84,12 +87,15 @@ OneWire onewire(one_wire_bus);        //create onewire bus object named onewire
 DallasTemperature sensors(&onewire);  //pass onewire object into DallasTemperature object named sensors
 float Temperature = 0;
 
+// Setup I2C LCD address
+LiquidCrystal_I2C lcd(0x27);          //set LiquidCrystal_I2C object named lcd, address is 0x27
+                                      // I2C of Linkit 7697: SDA -> P9  SCL -> P8
 //  Define relay pin out ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-byte Relay_1 = 7;         //Light relay
-byte Relay_2 = 8;         //Co2 relay
-byte Relay_3 = 9;         //AirPump relay
-byte Relay_4 = 10;        //Filter relay
+byte Relay_1 = 10;         //Light relay
+byte Relay_2 = 11;         //Co2 relay
+byte Relay_3 = 12;         //AirPump relay
+byte Relay_4 = 13;        //Filter relay
 byte ACS712 = 14;         //ACS712 current sensor (30A)
 byte Automode_LED = 2;    //The reason 
 byte Manualmode_LED = 3;
@@ -131,13 +137,14 @@ bool printflag3 = false;
 
 void MCS_addchannel();
 void MCS_Init();
+void RTC_Init();
+void NTP_Init();
+void LCD_Init();
 void Pin_Setup();
 void getStateFromMCS();
 void check_MCS_connection();
 void get_SetTime();
 void Timer_Mode();
-void RTC_Init();
-void NTP_Init();
 void sendNTPpacket();
 
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -292,6 +299,17 @@ void NTP_Init() {
   }
 }
 
+// Initialize the LCD screen -------------------------------------------------------------------------------------------------------------------------------------------------------------
+void LCD_Init(){
+  lcd.begin(16,2);
+  lcd.setCursor(7,0);
+  lcd.print("IOT");
+  lcd.setCursor(4,1);
+  lcd.print("AQUARIUM");
+  delay(1000);
+}
+
+
 // send an NTP request to the time server at the given address----------------------------------------------------------------------------------------------------------------------------
 unsigned long sendNTPpacket(const char* host) {
   
@@ -375,6 +393,7 @@ void get_Temperature(){
 
 void setup() {
   Serial.begin(115200);
+  LCD_Init();
   Pin_Setup();
   MCS_Init();   //MCS_Init() include the wifi initial process, be the first process in setup
   NTP_Init();   //NTP_Init() update current time into RTC module, need to be 
