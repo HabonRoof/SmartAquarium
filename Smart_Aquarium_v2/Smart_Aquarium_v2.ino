@@ -89,9 +89,9 @@ float Temperature = 0;
 
 // Setup I2C LCD address
 LiquidCrystal_I2C lcd(0x27);          //set LiquidCrystal_I2C object named lcd, address is 0x27
-                                      // I2C of Linkit 7697: SDA -> P9  SCL -> P8
+// I2C of Linkit 7697: SDA -> P9  SCL -> P8
 //  Define relay pin out ------------------------------------------------------------------------------------------------------------------------------------------------------------------
-                            //Pin 8 is I2C SCL, Pin9 is I2C SDA, connect to I2C perpherial (LCD)
+//Pin 8 is I2C SCL, Pin9 is I2C SDA, connect to I2C perpherial (LCD)
 byte Relay_1 = 10;          //Light relay
 byte Relay_2 = 11;          //Co2 relay
 byte Relay_3 = 12;          //AirPump relay
@@ -118,7 +118,7 @@ byte NowSec = 0;        int OpeningTime = 0;
 //Reference to the official datasheet:https://www.sparkfun.com/datasheets/BreakoutBoards/0712.pdf
 //5A measurement -> 185mV/A | 20A measurement -> 100mV/A | 30A measurement -> 66mV/A
 
-const int sensitivity = 66;    
+const int sensitivity = 66;
 float Current = 0;            //Current value
 float Current_offset = 0.21;  //Constant error of current sensor, about 0.22A
 
@@ -129,9 +129,9 @@ float Energe = 0;               //Energe consumption
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 //Some convenient flags for serial print or LCD
-bool printflag1 = false;
-bool printflag2 = false;
-bool printflag3 = false;
+bool LEDflag1 = false;
+bool LEDflag2 = false;
+bool LEDflag3 = false;
 
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -146,6 +146,8 @@ void get_SetTime();
 void Timer_Mode();
 void sendNTPpacket();
 void check_MCS_connection();
+void lcd_print_Automode_info();
+void lcd_print_Manulemode_info();
 
 
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -175,8 +177,8 @@ void Pin_Setup() {
   pinMode(Relay_3, OUTPUT);
   pinMode(Relay_4, OUTPUT);
   pinMode(ACS712, INPUT);
-  pinMode(Automode_LED,OUTPUT);
-  pinMode(Manualmode_LED,OUTPUT);
+  pinMode(Automode_LED, OUTPUT);
+  pinMode(Manualmode_LED, OUTPUT);
 }
 
 // Get relay state from MCS ---------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -206,9 +208,9 @@ void getStateFromMCS() {
 // Get setting time from MCS ------------------------------------------------------------------------------------------------------------------------------------------------------------
 void get_SetTime() {
   //Get set time from MCS, include the start time(hour), start time(minute), and opening time
-  StartHour = setHour.value(); 
-  StartMin = setMin.value(); 
-  OpeningTime = Duration.value(); 
+  StartHour = setHour.value();
+  StartMin = setMin.value();
+  OpeningTime = Duration.value();
   //Calculate the end time
   EndHour = StartHour + (OpeningTime / 60);
   EndMin = StartMin + (OpeningTime % 60);
@@ -228,27 +230,27 @@ void Timer_Mode() {
   LRTC.get();
   NowHour = LRTC.hour();
   NowMin = LRTC.minute();
-  
+
   //Check current time is same as start time or not
   //if yes, then turn on the sepecific relay
-  //if not, turn off the relay 
-  if (NowHour == StartHour && NowMin == StartMin){
-    digitalWrite(Relay_1,HIGH);   //turn on light relay
-    digitalWrite(Relay_2,HIGH);   //turn on Co2 relay
+  //if not, turn off the relay
+  if (NowHour == StartHour && NowMin == StartMin) {
+    digitalWrite(Relay_1, HIGH);  //turn on light relay
+    digitalWrite(Relay_2, HIGH);  //turn on Co2 relay
   }
-  if (NowHour == EndHour && NowMin == EndMin){
-    digitalWrite(Relay_1,LOW);    //turn off light relay
-    digitalWrite(Relay_2,LOW);    //turn off Co2 relay
+  if (NowHour == EndHour && NowMin == EndMin) {
+    digitalWrite(Relay_1, LOW);   //turn off light relay
+    digitalWrite(Relay_2, LOW);   //turn off Co2 relay
   }
 }
 
 // Get aquarium temperature via DS18B20 --------------------------------------------------------------------------------------------------------------------------------------------------
-void get_Temperature(){
+void get_Temperature() {
   sensors.requestTemperatures();                //Request all temperature sensor's value
-  if(sensors.getTempCByIndex(0) < 0)            //Avoid error data (-127) caused by poor contact, use one if conditional to check the data
+  if (sensors.getTempCByIndex(0) < 0)           //Avoid error data (-127) caused by poor contact, use one if conditional to check the data
     Temperature = Temperature;
   else
-    Temperature = sensors.getTempCByIndex(0);   //get the temperature in Celsius at sensor index "0" 
+    Temperature = sensors.getTempCByIndex(0);   //get the temperature in Celsius at sensor index "0"
   Temp.set(Temperature);                        //Update temperature to MCS
   Serial.print("Temperature:");
   Serial.println(Temperature);
@@ -269,7 +271,7 @@ void setup() {
   MCS_Init();   //MCS_Init() include the wifi initial process, be the first process in setup
   NTP_Init();   //NTP_Init() update current time into RTC module, need to be execute before RTC_Init()
   RTC_Init();   //Set RTC time to reality real time
-  
+
   //If the data is invalid, reget data from MCS
   while (!Light.valid() && !Co2.valid() && !AirPump.valid() && !Filter.valid() && !AutoMode.valid()) {
     Light.value();
@@ -287,27 +289,28 @@ void loop() {
   //call process() to allow background processing, add timeout to avoid high cpu usage
   mcs.process(500);
   if (AutoMode.value()) {
-    if(!printflag1){
+    if (!LEDflag1) {
       Serial.println("Auto Mode");
-      digitalWrite(Automode_LED,HIGH);
-      digitalWrite(Manualmode_LED,LOW);
-      lcd_print_Automode_info();
+      digitalWrite(Automode_LED, HIGH);
+      digitalWrite(Manualmode_LED, LOW);
     }
-    printflag1 = true;
-    printflag2 = false;
-    
+    LEDflag1 = true;
+    LEDflag2 = false;
+
     get_SetTime();              //Get the setting time from MCS via input box
     Timer_Mode();               //Start timer mode, check now need to open or close the relay(s)
+    lcd_print_Automode_info();
   }
   else {
-    if(!printflag2){
-     Serial.println("Manual Mode");
-     digitalWrite(Automode_LED,LOW);
-     digitalWrite(Manualmode_LED,HIGH);
+    if (!LEDflag2) {
+      Serial.println("Manual Mode");
+      digitalWrite(Automode_LED, LOW);
+      digitalWrite(Manualmode_LED, HIGH);
     }
-    printflag2 = true;
-    printflag1 = false;
-   
+    LEDflag2 = true;
+    LEDflag1 = false;
+
+    lcd_print_Manulemode_info();
     getStateFromMCS();          //Control relays through MCS pannel
   }
   get_AC_Current();             //Refresh curremt meter value in main loop
@@ -315,29 +318,115 @@ void loop() {
   check_MCS_connection();       //Check MCS connection in each loop
 }
 
-void lcd_print_Automode_info(){
+void lcd_print_Automode_info() {
   lcd.clear();
   lcd.print("Tmp:");
-  lcd.setCursor(4,0);
+  lcd.setCursor(4, 0);
   lcd.print(Temperature);
-  lcd.setCursor(8,0);
+  lcd.setCursor(8, 0);
   lcd.print("Cur:");
-  lcd.setCursor(12,0);
+  lcd.setCursor(12, 0);
   lcd.print(Current);
-  lcd.setCursor(0,1);
-  lcd.print(NowHour);
-  lcd.setCursor(3,1);
+  if (NowHour < 10) {
+    lcd.setCursor(0, 1);
+    lcd.print("0");
+    lcd.setCursor(1, 1);
+    lcd.print(NowHour);
+  }
+  else {
+    lcd.setCursor(0, 1);
+    lcd.print(NowHour);
+  }
+  lcd.setCursor(2, 1);
   lcd.print(":");
-  lcd.setCursor(4,1);
-  lcd.print(NowMin);
-  lcd.setCursor(7,1);
-  lcd.print(StartHour);
-  lcd.setCursor(9,1);
-  lcd.print(StartMin);
-  lcd.setCursor(11,1);
+  if (NowMin < 10) {
+    lcd.setCursor(3, 1);
+    lcd.print("0");
+    lcd.setCursor(4, 1);
+    lcd.print(NowMin);
+  }
+  else {
+    lcd.setCursor(3, 1);
+    lcd.print(NowMin);
+  }
+
+  if (StartHour < 10) {
+    lcd.setCursor(5, 1);
+    lcd.print("0");
+    lcd.setCursor(6, 1);
+    lcd.print(StartHour);
+  }
+  else {
+    lcd.setCursor(5, 1);
+    lcd.print(StartHour);
+  }
+  lcd.setCursor(7, 1);
+  lcd.print(":");
+  if (StartMin < 10) {
+    lcd.setCursor(8, 1);
+    lcd.print("0");
+    lcd.setCursor(9, 1);
+    lcd.print(StartMin);
+  }
+  else {
+    lcd.setCursor(8, 1);
+    lcd.print(StartMin);
+  }
+  lcd.setCursor(10, 1);
   lcd.print(">");
-  lcd.setCursor(12,1);
-  lcd.print(EndHour);
-  lcd.setCursor(14,1);
-  lcd.print(EndMin);
+  if (EndHour < 10) {
+    lcd.setCursor(11, 1);
+    lcd.print("0");
+    lcd.setCursor(12, 1);
+    lcd.print(EndHour);
+  }
+  else {
+    lcd.setCursor(11, 1);
+    lcd.print(EndHour);
+  }
+  lcd.setCursor(13, 1);
+  lcd.print(":");
+  if (EndMin < 10) {
+    lcd.setCursor(14, 1);
+    lcd.print("0");
+    lcd.setCursor(15, 1);
+    lcd.print(EndMin);
+  }
+  else {
+    lcd.setCursor(14, 1);
+    lcd.print(EndMin);
+  }
+}
+
+void lcd_print_Manulemode_info() {
+  lcd.clear();
+  lcd.print("Tmp:");
+  lcd.setCursor(4, 0);
+  lcd.print(Temperature);
+  lcd.setCursor(8, 0);
+  lcd.print("Cur:");
+  lcd.setCursor(12, 0);
+  lcd.print(Current);
+  if (NowHour < 10) {
+    lcd.setCursor(0, 1);
+    lcd.print("0");
+    lcd.setCursor(1, 1);
+    lcd.print(NowHour);
+  }
+  else {
+    lcd.setCursor(0, 1);
+    lcd.print(NowHour);
+  }
+  lcd.setCursor(2, 1);
+  lcd.print(":");
+  if (NowMin < 10) {
+    lcd.setCursor(3, 1);
+    lcd.print("0");
+    lcd.setCursor(4, 1);
+    lcd.print(NowMin);
+  }
+  else {
+    lcd.setCursor(3, 1);
+    lcd.print(NowMin);
+  }
 }
