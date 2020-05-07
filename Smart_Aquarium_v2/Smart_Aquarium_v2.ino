@@ -91,13 +91,13 @@ float Temperature = 0;
 LiquidCrystal_I2C lcd(0x27);          //set LiquidCrystal_I2C object named lcd, address is 0x27
                                       // I2C of Linkit 7697: SDA -> P9  SCL -> P8
 //  Define relay pin out ------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-byte Relay_1 = 10;         //Light relay
-byte Relay_2 = 11;         //Co2 relay
-byte Relay_3 = 12;         //AirPump relay
-byte Relay_4 = 13;        //Filter relay
-byte ACS712 = 14;         //ACS712 current sensor (30A)
-byte Automode_LED = 2;    //The reason 
+                            //Pin 8 is I2C SCL, Pin9 is I2C SDA, connect to I2C perpherial (LCD)
+byte Relay_1 = 10;          //Light relay
+byte Relay_2 = 11;          //Co2 relay
+byte Relay_3 = 12;          //AirPump relay
+byte Relay_4 = 13;          //Filter relay
+byte ACS712 = 14;           //ACS712 current sensor (30A)
+byte Automode_LED = 2;      //The reason not use pin 0 and 1 is because they are serial bus TX and RX
 byte Manualmode_LED = 3;
 
 
@@ -128,24 +128,25 @@ float Energe = 0;               //Energe consumption
 
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-//Some convenient flags
+//Some convenient flags for serial print or LCD
 bool printflag1 = false;
 bool printflag2 = false;
 bool printflag3 = false;
 
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-void MCS_addchannel();
 void MCS_Init();
 void RTC_Init();
 void NTP_Init();
 void LCD_Init();
+void MCS_addchannel();
 void Pin_Setup();
 void getStateFromMCS();
-void check_MCS_connection();
 void get_SetTime();
 void Timer_Mode();
 void sendNTPpacket();
+void check_MCS_connection();
+
 
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //Add channels to MCS service, the name of channel id is above the code, not on the MCS website.
@@ -165,16 +166,6 @@ void MCS_addchannel() {
   mcs.addChannel(Power);
   mcs.addChannel(Temp);
   mcs.addChannel(mcs_Current);
-}
-
-//Initialize MCS service and WiFi service -------------------------------------------------------------------------------------------------------------------------------------------------
-void MCS_Init() {
-  while (WL_CONNECTED != WiFi.status())         //Continuly conneting Wifi untill successful
-    WiFi.begin(mySSID, myPSWD);                 //Connect WiFi
-  Serial.println("WiFi connected!");
-  MCS_addchannel();                             //add channel to MCS
-  while (!mcs.connected())
-    mcs.connect();                              //Connect to MCS
 }
 
 //Setup pin mode --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -210,11 +201,7 @@ void getStateFromMCS() {
   }
 }
 
-// Check the device is online or not-----------------------------------------------------------------------------------------------------------------------------------------------------
-void check_MCS_connection() {
-  while (!mcs.connected())
-    mcs.connect();
-}
+
 
 // Get setting time from MCS ------------------------------------------------------------------------------------------------------------------------------------------------------------
 void get_SetTime() {
@@ -255,139 +242,23 @@ void Timer_Mode() {
   }
 }
 
-// Initialize the RTC and set to real time ----------------------------------------------------------------------------------------------------------------------------------------------
-void RTC_Init() {
-  LRTC.begin();
-  LRTC.set(2020, 5, 5, NowHour, NowMin, NowSec);  //Set the RTC time to 2020/05/05/ HH:MM:SS (NTP time) the date of RTC is not importand, so I ignore the process to update real date.
-  LRTC.get();
-  //Serial.print("Nowtime ");
-  //Serial.print(LRTC.hour());
-  //Serial.print(LRTC.minute());
-  //Serial.println(LRTC.second());
-}
-
-// Initialize NTP server to get correct time from internet ------------------------------------------------------------------------------------------------------------------------------
-void NTP_Init() {
-  Udp.begin(localPort);
-  // First,send an NTP packet to a time server,
-  // and wait to see if a reply is available.
-  sendNTPpacket(NTP_server);
-
-  delay(5000);
-  if (Udp.parsePacket()) {
-    // We've received a packet, read the data into the buffer
-    Udp.read(packetBuffer, NTP_PACKET_SIZE);
-
-    //Second,the timestamp starts at byte 40 of the received packet and is four bytes,
-    // or two words, long. we need to esxtract the two words:
-    unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
-    unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
-
-    // And combine the four bytes (two words) into a long integer
-    unsigned long secsSince1900 = highWord << 16 | lowWord;
-
-    // this is NTP time (seconds since Jan 1 1900):
-    // But we need to convert NTP time into everyday time:
-    const unsigned long seventyYears = 2208988800UL;              //Unix time starts on Jan 1 1970. In seconds, that's 2208988800 second
-
-    unsigned long NowTime = secsSince1900 - seventyYears;         //get the current time from 1970/01/01 (second)
-
-    //Updete time parameter into NTP time
-    NowHour = (NowTime  % 86400L) / 3600 + TimeZone;              // Convert into hour (86400 equals secs per day)
-    NowMin = (NowTime  % 3600) / 60;
-    NowSec = (NowTime % 60);
-  }
-}
-
-// Initialize the LCD screen -------------------------------------------------------------------------------------------------------------------------------------------------------------
-void LCD_Init(){
-  lcd.begin(16,2);
-  lcd.setCursor(7,0);
-  lcd.print("IOT");
-  lcd.setCursor(4,1);
-  lcd.print("AQUARIUM");
-  delay(1000);
-}
-
-
-// send an NTP request to the time server at the given address----------------------------------------------------------------------------------------------------------------------------
-unsigned long sendNTPpacket(const char* host) {
-  
-  // set all bytes in the buffer to 0
-  memset(packetBuffer, 0, NTP_PACKET_SIZE);
-  
-  // Initialize values needed to form NTP request
-  // (see NTP Wiki above for details on the packets)
-  packetBuffer[0] = 0b11100011;   // LI, Version, Mode
-  packetBuffer[1] = 0;            // Stratum, or type of clock
-  packetBuffer[2] = 6;            // Polling Interval
-  packetBuffer[3] = 0xEC;         // Peer Clock Precision
-  // 8 bytes of zero for Root Delay & Root Dispersion
-  packetBuffer[12]  = 49;
-  packetBuffer[13]  = 0x4E;
-  packetBuffer[14]  = 49;
-  packetBuffer[15]  = 52;
-
-  // all NTP fields have been given values, now
-  // you can send a packet requesting a timestamp:
-  Udp.beginPacket(host, 123); //NTP requests are to port 123
-
-  Udp.write(packetBuffer, NTP_PACKET_SIZE);
-
-  Udp.endPacket();
-
-  return 0;
-}
-
-//Measure the current and send to MCS ---------------------------------------------------------------------------------------------------------------------------------------------------------
-void get_AC_Current(){
-  int analogVal = 0;              //Analog value read from the sensor pin
-  int maxValue = 0;               //store max value, choose 0 to be the initial value
-  int minValue = 4096;            //store min value, choose your microcontroller's "analog read max value" to be initial value (Arduino -> 1024)
-  unsigned long CurrentTimer = millis();
-  while((millis() - CurrentTimer) < 200){             //Sampling sensor value in 200mS period
-      analogVal = analogRead(ACS712);
-    if (analogVal > maxValue)                         //update max value
-      maxValue = analogVal;
-    if (analogVal < minValue)                         //update min value
-      minValue = analogVal;
-  }
-  //Serial.print("Max val =");
-  //Serial.print(maxValue);
-  //Serial.print("/t");
-  //Serial.print("Min val =");
-  //Serial.println(minValue);
-  float Vpp = (maxValue - minValue) * 5000 / 4096;    //Means peak-to-peak voltage is the max value - min value, and convert to the real voltage of ACS712 module, not ADC number.
-                                                      //So the Vcc should be 5000mV instead of 2500mV.
-  
-  /* Limitations of Linkit7697 https://docs.labs.mediatek.com/resource/linkit7697-arduino/en/developer-guide/limitations-of-linkit-7697
-   * Linkit 7697's ADC resolution is 4096 steps, and the voltage range is from 0 ~ 2.5V, here comes a problem:
-   * Is the "Vpp" value calculate by the formula above correct or not?
-   * The answer is NOT correct.
-   * Because the neural point of module is 2.5V, is the maximum value of ADC input.
-   * To completely fix this problem, you need to use two resisters (about 1k ohm) to make a voltage diviter, convert 5V to 2.5V proportionally, makes nural point to be 1.25V. 
-   */
-   
-  Current = (Vpp / 2.0 * 0.707 / sensitivity) - Current_offset;           //Convert Vpp into Vrms, this value is the sensor's Vrms, and also represent current
-  if(Current < 0)                                                         //Current is positive
-    Current = 0;
-  //Serial.print("Current =");
-  //Serial.println(Current);
-  mcs_Current.set(Current);                                               //send current to MCS
-  Energe += (Volt * Current / 3600) / 1000;                               //Calculate power consumption and accumulate the energe. 
-  Power.set(Energe);                                                      //Send power consumption to MCS -> P = I*V (W), W = P * T (kW/H)
-}
-
 // Get aquarium temperature via DS18B20 --------------------------------------------------------------------------------------------------------------------------------------------------
 void get_Temperature(){
   sensors.requestTemperatures();                //Request all temperature sensor's value
-  Temperature = sensors.getTempCByIndex(0);     //get the temperature in Celsius at sensor number "0" 
+  if(sensors.getTempCByIndex(0) < 0)            //Avoid error data (-127) caused by poor contact, use one if conditional to check the data
+    Temperature = Temperature;
+  else
+    Temperature = sensors.getTempCByIndex(0);   //get the temperature in Celsius at sensor index "0" 
   Temp.set(Temperature);                        //Update temperature to MCS
   Serial.print("Temperature:");
   Serial.println(Temperature);
 }
 
-
+// Check the device is online or not-----------------------------------------------------------------------------------------------------------------------------------------------------
+void check_MCS_connection() {
+  while (!mcs.connected())
+    mcs.connect();
+}
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -396,8 +267,8 @@ void setup() {
   LCD_Init();
   Pin_Setup();
   MCS_Init();   //MCS_Init() include the wifi initial process, be the first process in setup
-  NTP_Init();   //NTP_Init() update current time into RTC module, need to be 
-  RTC_Init();
+  NTP_Init();   //NTP_Init() update current time into RTC module, need to be execute before RTC_Init()
+  RTC_Init();   //Set RTC time to reality real time
   
   //If the data is invalid, reget data from MCS
   while (!Light.valid() && !Co2.valid() && !AirPump.valid() && !Filter.valid() && !AutoMode.valid()) {
@@ -408,7 +279,7 @@ void setup() {
     AutoMode.value();
   }
   sensors.begin();        //Start DallasTemperature sensors
-  getStateFromMCS();
+  getStateFromMCS();      //get relay status from MCS
 }
 
 
@@ -420,12 +291,13 @@ void loop() {
       Serial.println("Auto Mode");
       digitalWrite(Automode_LED,HIGH);
       digitalWrite(Manualmode_LED,LOW);
+      lcd_print_Automode_info();
     }
     printflag1 = true;
     printflag2 = false;
     
-    get_SetTime();
-    Timer_Mode();
+    get_SetTime();              //Get the setting time from MCS via input box
+    Timer_Mode();               //Start timer mode, check now need to open or close the relay(s)
   }
   else {
     if(!printflag2){
@@ -436,9 +308,36 @@ void loop() {
     printflag2 = true;
     printflag1 = false;
    
-    getStateFromMCS();
+    getStateFromMCS();          //Control relays through MCS pannel
   }
-  get_AC_Current();
-  get_Temperature();
-  check_MCS_connection();
+  get_AC_Current();             //Refresh curremt meter value in main loop
+  get_Temperature();            //Refresh temperature value in main loop
+  check_MCS_connection();       //Check MCS connection in each loop
+}
+
+void lcd_print_Automode_info(){
+  lcd.clear();
+  lcd.print("Tmp:");
+  lcd.setCursor(4,0);
+  lcd.print(Temperature);
+  lcd.setCursor(8,0);
+  lcd.print("Cur:");
+  lcd.setCursor(12,0);
+  lcd.print(Current);
+  lcd.setCursor(0,1);
+  lcd.print(NowHour);
+  lcd.setCursor(3,1);
+  lcd.print(":");
+  lcd.setCursor(4,1);
+  lcd.print(NowMin);
+  lcd.setCursor(7,1);
+  lcd.print(StartHour);
+  lcd.setCursor(9,1);
+  lcd.print(StartMin);
+  lcd.setCursor(11,1);
+  lcd.print(">");
+  lcd.setCursor(12,1);
+  lcd.print(EndHour);
+  lcd.setCursor(14,1);
+  lcd.print(EndMin);
 }
