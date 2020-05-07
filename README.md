@@ -19,6 +19,8 @@ with relay and DS18B20 temperature sensor, you can monitor the value of your aqu
 
 
 # 硬體設備/Hardware
+![Alt text](Image/components.jpg "C")
+
 1. 1x Linkit 7697
 
 2. 1x 110v轉5V變壓器
