@@ -1,0 +1,10 @@
+Added Component: Designator=*(Linkit7697)
+Added Pin To Net: NetName=GND Pin=*-GND
+Added Pin To Net: NetName=GND Pin=*-GND
+Added Pin To Net: NetName=GND Pin=*-GND
+Added Pin To Net: NetName=GND Pin=*-GND
+Added Net: Name=GND
+Added Pin To Net: NetName=VCC Pin=*-5V
+Added Net: Name=VCC
+Added Class: Name=Sheet1
+Added Room: Name=Sheet1
