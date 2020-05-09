@@ -92,13 +92,13 @@ LiquidCrystal_I2C lcd(0x27);          //set LiquidCrystal_I2C object named lcd, 
 // I2C of Linkit 7697: SDA -> P9  SCL -> P8
 //  Define relay pin out ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //Pin 8 is I2C SCL, Pin9 is I2C SDA, connect to I2C perpherial (LCD)
-byte Relay_1 = 10;          //Light relay
-byte Relay_2 = 11;          //Co2 relay
-byte Relay_3 = 12;          //AirPump relay
-byte Relay_4 = 13;          //Filter relay
-byte ACS712 = 14;           //ACS712 current sensor (30A)
-byte Automode_LED = 2;      //The reason not use pin 0 and 1 is because they are serial bus TX and RX
-byte Manualmode_LED = 3;
+const byte Relay_1 = 10;          //Light relay
+const byte Relay_2 = 11;          //Co2 relay
+const byte Relay_3 = 12;          //AirPump relay
+const byte Relay_4 = 13;          //Filter relay
+const byte ACS712 = 14;           //ACS712 current sensor (30A)
+const byte Automode_LED = 2;      //The reason not use pin 0 and 1 is because they are serial bus TX and RX
+const byte Manualmode_LED = 3;
 
 
 //  Define time parameter -----------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -112,6 +112,7 @@ byte StartHour = 0;     byte StartMin = 0;
 byte EndHour = 0;       byte EndMin = 0;
 byte NowHour = 0;       byte NowMin = 0;
 byte NowSec = 0;        int OpeningTime = 0;
+byte last_update_minute = 0;
 
 // Define current sensor parameter --------------------------------------------------------------------------------------------------------------------------------------------------------
 //Sensitivity means how much mV when 1A current flow through the sensor
@@ -139,20 +140,21 @@ void MCS_Init();
 void RTC_Init();
 void NTP_Init();
 void LCD_Init();
-void MCS_addchannel();
-void Pin_Setup();
-void getStateFromMCS();
+void mcs_Addchannel();
+void pin_setup();
+void get_status_from_MCS();
 void get_SetTime();
-void Timer_Mode();
+void timer_Mode();
 void sendNTPpacket();
 void check_MCS_connection();
 void lcd_print_Automode_info();
 void lcd_print_Manulemode_info();
+void mcs_update_dataPoint();
 
 
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //Add channels to MCS service, the name of channel id is above the code, not on the MCS website.
-void MCS_addchannel() {
+void mcs_Addchannel() {
   mcs.addChannel(Light);
   mcs.addChannel(Light_state);
   mcs.addChannel(Co2);
@@ -171,7 +173,7 @@ void MCS_addchannel() {
 }
 
 //Setup pin mode --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-void Pin_Setup() {
+void pin_setup() {
   pinMode(Relay_1, OUTPUT);
   pinMode(Relay_2, OUTPUT);
   pinMode(Relay_3, OUTPUT);
@@ -182,7 +184,7 @@ void Pin_Setup() {
 }
 
 // Get relay state from MCS ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-void getStateFromMCS() {
+void get_status_from_MCS() {
   //Get the switch state from MCS
   //and update the state to MCS display
   if (Light.updated()) {
@@ -225,7 +227,7 @@ void get_SetTime() {
 }
 
 // When Auto mode is on, goin to timer relay --------------------------------------------------------------------------------------------------------------------------------------------
-void Timer_Mode() {
+void timer_Mode() {
   //Get now time from RTC
   LRTC.get();
   NowHour = LRTC.hour();
@@ -234,7 +236,7 @@ void Timer_Mode() {
   //Check current time is same as start time or not
   //if yes, then turn on the sepecific relay
   //if not, turn off the relay
-  if (NowHour == StartHour && NowMin == StartMin) {
+  if (NowHour == StartHour && NowMin == StartMin) {           //Small bug : If now time is 12:00, but start time is 8:00 end time is 16:00 the relay should not be open
     digitalWrite(Relay_1, HIGH);  //turn on light relay
     digitalWrite(Relay_2, HIGH);  //turn on Co2 relay
   }
@@ -251,11 +253,25 @@ void get_Temperature() {
     Temperature = Temperature;
   else
     Temperature = sensors.getTempCByIndex(0);   //get the temperature in Celsius at sensor index "0"
-  Temp.set(Temperature);                        //Update temperature to MCS
+  // Temp.set(Temperature);                     //Update temperature to MCS (move to mcs_update_datapoint function)
   Serial.print("Temperature:");
   Serial.println(Temperature);
 }
 
+// Update data to MCS server per minutes to reduce usage of datapoint
+void mcs_update_dataPoint() {
+  LRTC.get();
+  NowMin = LRTC.minute();
+  if (NowMin - last_update_minute == 1) {             //To reduce MCS datapoint usage, update datapoint per minute
+    Serial.println("Update to MCS per minute");
+    mcs_Current.set(Current);
+    Power.set(Energe);
+    Temp.set(Temperature);
+    
+  }
+  LRTC.get();
+  last_update_minute = LRTC.minute();
+}
 // Check the device is online or not-----------------------------------------------------------------------------------------------------------------------------------------------------
 void check_MCS_connection() {
   while (!mcs.connected())
@@ -267,7 +283,7 @@ void check_MCS_connection() {
 void setup() {
   Serial.begin(115200);
   LCD_Init();
-  Pin_Setup();
+  pin_setup();
   MCS_Init();   //MCS_Init() include the wifi initial process, be the first process in setup
   NTP_Init();   //NTP_Init() update current time into RTC module, need to be execute before RTC_Init()
   RTC_Init();   //Set RTC time to reality real time
@@ -281,7 +297,6 @@ void setup() {
     AutoMode.value();
   }
   sensors.begin();        //Start DallasTemperature sensors
-  getStateFromMCS();      //get relay status from MCS
 }
 
 
@@ -298,7 +313,7 @@ void loop() {
     LEDflag2 = false;
 
     get_SetTime();              //Get the setting time from MCS via input box
-    Timer_Mode();               //Start timer mode, check now need to open or close the relay(s)
+    timer_Mode();               //Start timer mode, check now need to open or close the relay(s)
     lcd_print_Automode_info();
   }
   else {
@@ -311,10 +326,11 @@ void loop() {
     LEDflag1 = false;
 
     lcd_print_Manulemode_info();
-    getStateFromMCS();          //Control relays through MCS pannel
+    get_status_from_MCS();          //Control relays through MCS pannel
   }
   get_AC_Current();             //Refresh curremt meter value in main loop
   get_Temperature();            //Refresh temperature value in main loop
+  mcs_update_dataPoint();       //Update data per minute
   check_MCS_connection();       //Check MCS connection in each loop
 }
 

@@ -4,7 +4,7 @@ void MCS_Init() {
   while (WL_CONNECTED != WiFi.status())         //Continuly conneting Wifi untill successful
     WiFi.begin(mySSID, myPSWD);                 //Connect WiFi
   Serial.println("WiFi connected!");
-  MCS_addchannel();                             //add channel to MCS
+  mcs_Addchannel();                             //add channel to MCS
   while (!mcs.connected())
     mcs.connect();                              //Connect to MCS
 }
@@ -126,7 +126,7 @@ void get_AC_Current(){
     Current = 0;
   //Serial.print("Current =");
   //Serial.println(Current);
-  mcs_Current.set(Current);                                               //send current to MCS
+  //mcs_Current.set(Current);                                               //send current to MCS (move to mcs_update_datapoint function)
   Energe += (Volt * Current / 3600) / 1000;                               //Calculate power consumption and accumulate the energe. 
-  Power.set(Energe);                                                      //Send power consumption to MCS -> P = I*V (W), W = P * T (kW/H)
+  //Power.set(Energe);                                                      //Send power consumption to MCS -> P = I*V (W), W = P * T (kW/H) (move to mcs_update_datapoint function)
 }
