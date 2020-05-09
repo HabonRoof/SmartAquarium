@@ -249,7 +249,7 @@ void timer_Mode() {
 // Get aquarium temperature via DS18B20 --------------------------------------------------------------------------------------------------------------------------------------------------
 void get_Temperature() {
   sensors.requestTemperatures();                //Request all temperature sensor's value
-  if (sensors.getTempCByIndex(0) < 0)           //Avoid error data (-127) caused by poor contact, use one if conditional to check the data
+  if (sensors.getTempCByIndex(0) < 0)           //Avoid error data (-127) caused by poor contact
     Temperature = Temperature;
   else
     Temperature = sensors.getTempCByIndex(0);   //get the temperature in Celsius at sensor index "0"
@@ -330,19 +330,18 @@ void loop() {
   }
   get_AC_Current();             //Refresh curremt meter value in main loop
   get_Temperature();            //Refresh temperature value in main loop
-  mcs_update_dataPoint();       //Update data per minute
+  mcs_update_dataPoint();       //Update data to MCS per minute
   check_MCS_connection();       //Check MCS connection in each loop
 }
 
 void lcd_print_Automode_info() {
   lcd.clear();
-  lcd.print("Tmp:");
-  lcd.setCursor(4, 0);
-  lcd.print(Temperature);
+  lcd.print("Auto");
   lcd.setCursor(8, 0);
-  lcd.print("Cur:");
-  lcd.setCursor(12, 0);
-  lcd.print(Current);
+  lcd.print(Temperature);
+  lcd.setCursor(14, 0);
+  lcd.print(" C");
+  
   if (NowHour < 10) {
     lcd.setCursor(0, 1);
     lcd.print("0");
@@ -367,17 +366,15 @@ void lcd_print_Automode_info() {
   }
 
   if (StartHour < 10) {
-    lcd.setCursor(5, 1);
-    lcd.print("0");
     lcd.setCursor(6, 1);
+    lcd.print("0");
+    lcd.setCursor(7, 1);
     lcd.print(StartHour);
   }
   else {
-    lcd.setCursor(5, 1);
+    lcd.setCursor(6, 1);
     lcd.print(StartHour);
   }
-  lcd.setCursor(7, 1);
-  lcd.print(":");
   if (StartMin < 10) {
     lcd.setCursor(8, 1);
     lcd.print("0");
@@ -389,19 +386,17 @@ void lcd_print_Automode_info() {
     lcd.print(StartMin);
   }
   lcd.setCursor(10, 1);
-  lcd.print(">");
+  lcd.print("->");
   if (EndHour < 10) {
-    lcd.setCursor(11, 1);
-    lcd.print("0");
     lcd.setCursor(12, 1);
+    lcd.print("0");
+    lcd.setCursor(13, 1);
     lcd.print(EndHour);
   }
   else {
-    lcd.setCursor(11, 1);
+    lcd.setCursor(12, 1);
     lcd.print(EndHour);
   }
-  lcd.setCursor(13, 1);
-  lcd.print(":");
   if (EndMin < 10) {
     lcd.setCursor(14, 1);
     lcd.print("0");
@@ -416,9 +411,7 @@ void lcd_print_Automode_info() {
 
 void lcd_print_Manulemode_info() {
   lcd.clear();
-  lcd.print("Tmp:");
-  lcd.setCursor(4, 0);
-  lcd.print(Temperature);
+  lcd.print("Manu");
   lcd.setCursor(8, 0);
   lcd.print("Cur:");
   lcd.setCursor(12, 0);
@@ -445,4 +438,8 @@ void lcd_print_Manulemode_info() {
     lcd.setCursor(3, 1);
     lcd.print(NowMin);
   }
+  lcd.setCursor(7,1);
+  lcd.print("Eng:");
+  lcd.setCursor(11,1);
+  lcd.print(Energe);
 }
