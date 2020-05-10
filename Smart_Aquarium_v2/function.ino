@@ -12,12 +12,14 @@ void MCS_Init() {
 // Initialize the RTC and set to real time ----------------------------------------------------------------------------------------------------------------------------------------------
 void RTC_Init() {
   LRTC.begin();
-  LRTC.set(2020, 5, 5, NowHour, NowMin, NowSec);  //Set the RTC time to 2020/05/05/ HH:MM:SS (NTP time) the date of RTC is not importand, so I ignore the process to update real date.
+  LRTC.set(2020, 5, 10, NowHour, NowMin, NowSec);  //Set the RTC time to 2020/05/05/ HH:MM:SS (NTP time) the date of RTC is not importand, so I ignore the process to update real date.
   LRTC.get();
-  //Serial.print("Nowtime ");
-  //Serial.print(LRTC.hour());
-  //Serial.print(LRTC.minute());
-  //Serial.println(LRTC.second());
+  Serial.print("Nowtime ");
+  Serial.print(LRTC.hour());
+  Serial.print(":");
+  Serial.print(LRTC.minute());
+  Serial.print(":");
+  Serial.println(LRTC.second());
 }
 
 // Initialize NTP server to get correct time from internet ------------------------------------------------------------------------------------------------------------------------------

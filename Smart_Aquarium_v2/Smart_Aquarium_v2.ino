@@ -132,7 +132,6 @@ float Energe = 0;               //Energe consumption
 //Some convenient flags for serial print or LCD
 bool LEDflag1 = false;
 bool LEDflag2 = false;
-bool LEDflag3 = false;
 
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
