@@ -3,6 +3,8 @@
 
 # IOT SmartAquarium
 
+YouTube Link : https://www.youtube.com/watch?v=fPH_UBWnZz8
+
 炎炎夏日，養魚種草的你是否擔心家裡魚缸的溫度會不會過高?
 會不會擔心今天會不會太晚下班/下課回家，魚缸的燈忘記關，讓水缸爆藻?
 
@@ -43,6 +45,8 @@ https://docs.labs.mediatek.com/resource/linkit7697-arduino/en/environment-setup
 
 # 成果/Result
 外觀圖片
-
+![Alt text](Image/outlook.jpg "Outlook")
+![Alt text](Image/boot.jpg "Boost")
+![Alt text](Image/auto mode.jpg "Auto Mode")
 應用圖片
-
+![Alt text](Image/Useing.jpg "Using")
