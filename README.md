@@ -45,8 +45,8 @@ https://docs.labs.mediatek.com/resource/linkit7697-arduino/en/environment-setup
 
 # 成果/Result
 外觀圖片
-![Alt text](Image/outlook.jpg "Outlook")
+![Alt text](Image/outlook.png "Outlook")
 ![Alt text](Image/boot.jpg "Boost")
-![Alt text](Image/auto mode.jpg "Auto Mode")
+![Alt text](Image/automode.jpg "Auto Mode")
 應用圖片
 ![Alt text](Image/Useing.jpg "Using")
