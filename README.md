@@ -49,4 +49,4 @@ https://docs.labs.mediatek.com/resource/linkit7697-arduino/en/environment-setup
 ![Alt text](Image/boot.jpg "Boost")
 ![Alt text](Image/automode.jpg "Auto Mode")
 應用圖片
-![Alt text](Image/Useing.jpg "Using")
+![Alt text](Image/Using.jpg "Using")
