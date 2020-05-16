@@ -23,21 +23,23 @@ with relay and DS18B20 temperature sensor, you can monitor the value of your aqu
 
 1. 1x Linkit 7697
 
-2. 1x 110v轉5V變壓器
+2. 1x 110v轉5V變壓器 或手機充電器 /ac 110v to dc 5v transformer or old phone charger
 
-3. 4x 繼電器(耐壓110V,10A)
+3. 4x 繼電器(耐壓110V,10A)  /relay 110V/10A
 
-4. 6x 110V插座
+4. 6x 110V插座 /110V ac socket
 
-5. 1x 開關盒
+5. 1x 開關盒/   switch box
 
-6. 1.6 單心銅線
+6. 1.6 單心銅線/ 1.6mm core copper wire
 
 
 # 軟體/Software
-MCS雲端服務
+MCS雲端服務 / MCS introduction
+https://mcs.mediatek.com/resources/latest/introduction
 
-Arduino IDE
+Arduino IDE 設定方法/ Arduino IDE Enviorment setup
+https://docs.labs.mediatek.com/resource/linkit7697-arduino/en/environment-setup
 
 # 成果/Result
 外觀圖片
