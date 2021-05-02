@@ -32,7 +32,7 @@
 
 //Assign your test device id / key
 //You can find it on your test device website
-MCSDevice mcs ("DbSzg0JB", "B9XagSJyEAhjBQrk");
+MCSLiteDevice mcs ("HJa45fhDd", "9bfe7255c4cdbf1c7c3db0e82702bf632b3b06faabee0a9443b853df2345a43f", "192.168.0.7", 3000);
 
 
 //  MCS Channel Zone-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
